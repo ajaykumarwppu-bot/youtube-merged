@@ -53,7 +53,7 @@ Har item ka status honest hai:
 - [x] ✅ `STUDIO_PORT` per-flavor (standard 8877 / termux 8875) — side-by-side port conflict zero
 - [x] ✅ `zip` noCompress — 40MB+ studio asset bina double-compression ke
 - [x] ✅ WebView cleartext localhost — manifest me already allowed (`usesCleartextTraffic`)
-- [ ] 🤖 Kotlin compile — CI (gradle assembleStandardRelease) par confirm hoga
+- [x] ✅ Kotlin compile — CI (gradle assembleStandardRelease) GREEN ho gaya
 - [ ] 📱 Studio button → server start → WebView me Studio UI
 
 ## 5. MCP plugin (creator-studio-plugin/)
@@ -73,7 +73,7 @@ Har item ka status honest hai:
 - [x] ✅ version.json se version — original release system jaisa, updater compatible
 - [x] ✅ Keystore CI secrets se (RELEASE_KEYSTORE_BASE64) — repo me key kabhi nahi
 - [x] ✅ Release publish par updater-ready APK naming
-- [ ] 🤖 Pehla push — workflow green + release me APK (push ke baad confirm hoga)
+- [x] ✅ Workflow GREEN — release v1.0.0 published: CreatorStudio-standard-v1.0.0-release.apk (36.6 MB)
 
 ## 7. Docs
 
@@ -82,8 +82,10 @@ Har item ka status honest hai:
 - [x] ✅ creator-studio-plugin/README.md — install + verify + update
 - [x] ✅ version.json changelog — pehli release ke notes
 
-## 8. Push ke baad (is push par kya hoga)
+## 8. Push ke baad — VERIFIED (live status)
 
-1. Actions tab → "Build & Release APK" workflow green + APK artifact
-2. Releases page par v1.0.0 release + APK (updater isi ko dhundega)
-3. Phone par: APK install → original AntiGem ke saath side-by-side → Studio button → setup.md
+1. [x] ✅ Actions → "Build & Release APK" workflow GREEN (dono runs success)
+2. [x] ✅ Release **v1.0.0** published — `CreatorStudio-standard-v1.0.0-release.apk` (36.6 MB) — updater isi ko dhundega
+3. [x] ✅ Release **rootfs-v1** — bootrapz_2026-10-04.zip (351.3 MB) — app ka Linux env isi se download karega
+4. [x] ✅ Updater probes pass: version.json raw (200) + APK download URL + rootfs URL — teeno live
+5. [ ] 📱 Ab sirf PHONE par: APK install → original AntiGem ke saath side-by-side → Studio button → setup.md follow
