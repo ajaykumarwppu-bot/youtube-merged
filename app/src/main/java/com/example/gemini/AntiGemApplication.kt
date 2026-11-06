@@ -1,5 +1,6 @@
 package com.example.gemini
 
+import android.app.Application
 import android.util.Log
 import com.example.gemini.data.adb.AdbConnectManager
 import com.example.gemini.data.local.LocalEnvironmentManager
