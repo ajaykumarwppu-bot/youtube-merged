@@ -34,11 +34,15 @@ class AntiGemApplication : Application() {
         // terminal/Studio spawn heavy file-walk (com.termux path rewrite) + glibc extract
         // trigger karta tha jo Main thread par app ko hang/karvata tha. Ye kaam ab app
         // start par background me ho jata hai — install flow bhi yeh karta hai (IO par).
+        // v1.0.4: LocalPtySession init se ensure* calls hat gaye hain, isliye ab yahi
+        // prewarm (aur IO callers) inhe guarantee karte hain — poora set, ek hi jagah.
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {
                 if (LocalEnvironmentManager.isInstalled(this@AntiGemApplication)) {
                     LocalEnvironmentManager.ensureTermuxScriptPaths(this@AntiGemApplication)
                     LocalEnvironmentManager.ensureGlibcEnvironment(this@AntiGemApplication)
+                    LocalEnvironmentManager.ensureClaudeWrapper(this@AntiGemApplication)
+                    LocalEnvironmentManager.ensureTermuxApiDispatcher(this@AntiGemApplication)
                 }
             }
         }

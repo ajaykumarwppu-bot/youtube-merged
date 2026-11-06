@@ -263,9 +263,15 @@ class LocalPtySession(
                 val home = LocalEnvironmentManager.getHomeDir(context)
                 val tmp = LocalEnvironmentManager.getTmpDir(context)
 
-                LocalEnvironmentManager.ensureGlibcEnvironment(context)
-                LocalEnvironmentManager.ensureClaudeWrapper(context)
-                LocalEnvironmentManager.ensureTermuxApiDispatcher(context)
+                // NOTE: ensureGlibcEnvironment / ensureClaudeWrapper / ensureTermuxApiDispatcher /
+                // ensureTermuxScriptPaths yahan se HATA diye gaye hain (v1.0.4 ANR fix).
+                // Ye functions heavy hain (ensureTermuxScriptPaths poore rootfs ka 25k+ file
+                // walk kar sakta hai aur synchronized lock hold karta hai) — session init
+                // Main thread par bhi hota tha, isliye prewarm ke IO walk ke saath lock
+                // contention par UI 20-25s freeze hota tha -> ANR -> app auto-exit.
+                // Ye ab sirf IO threads par chalte hain: AntiGemApplication prewarm,
+                // LocalServerManager.startServerInternal, StudioServerManager aur
+                // getOrCreateOrRestoreSessions ka IO hoisted block.
 
                 val loginShellBinaries = arrayOf("login", "bash", "zsh", "fish", "sh")
 
@@ -318,7 +324,6 @@ class LocalPtySession(
                 // (termux-exec v2 + OpenSSL config) must point at THIS package's prefix.
                 envMap["LD_LIBRARY_PATH"] = LocalEnvironmentManager.getLibDir(context).absolutePath
                 LocalEnvironmentManager.applyTermuxRuntimeEnv(envMap, context)
-                LocalEnvironmentManager.ensureTermuxScriptPaths(context)
                 envMap["SHELL"] = shellBinary
                 envMap["ANDROID_DATA"] = "/data"
                 envMap["ANDROID_ROOT"] = "/system"
@@ -1203,7 +1208,11 @@ object LocalTerminalManager {
     private val _isSyncingTmux = MutableStateFlow(false)
     val isSyncingTmux: StateFlow<Boolean> = _isSyncingTmux.asStateFlow()
 
-    private val managerScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    // v1.0.4 ANR fix: pehle Dispatchers.Main tha — createNewSession ke andar LocalPtySession
+    // init (process spawn + env build) aur uske heavy ensure* calls Main thread par chal rahe
+    // the. Ab IO par: saare state updates StateFlow/SharedPreferences hain (thread-safe) aur
+    // terminal callbacks khud Main par post karte hain (sessionScope.launch(Dispatchers.Main)).
+    private val managerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private const val PREFS_NAME = "anti_gem_terminal_prefs"
     private const val KEY_LAST_ACTIVE_TMUX_INDEX = "last_active_tmux_window_index"
@@ -1264,7 +1273,15 @@ object LocalTerminalManager {
         Log.d(TAG, "[Manager] Preferences: useSsh=$useSsh, host=$host, port=$port, user=$user")
 
         if (!useSsh) {
-            return withContext(Dispatchers.Main) {
+            return withContext(Dispatchers.IO) {
+                // v1.0.4 ANR fix: heavy ensure* calls ab session init me nahi hain — yahan IO par
+                // ek baar run karte hain (prewarm ke saath double-work nahi hoga, pref flag fast-path hai)
+                if (LocalEnvironmentManager.isTermuxPackage(context)) {
+                    runCatching { LocalEnvironmentManager.ensureGlibcEnvironment(context) }
+                    runCatching { LocalEnvironmentManager.ensureClaudeWrapper(context) }
+                    runCatching { LocalEnvironmentManager.ensureTermuxApiDispatcher(context) }
+                    runCatching { LocalEnvironmentManager.ensureTermuxScriptPaths(context) }
+                }
                 val primary = LocalPtySession(
                     id = "session-1",
                     initialTitle = "1",
@@ -1291,7 +1308,7 @@ object LocalTerminalManager {
         _isSyncingTmux.value = false
         Log.d(TAG, "[Manager] Probing complete, discovered ${discoveredWindows.size} windows")
 
-        return withContext(Dispatchers.Main) {
+        return withContext(Dispatchers.IO) {
             if (discoveredWindows.isNotEmpty()) {
                 val sortedWindows = discoveredWindows.sortedBy { it.index }
                 val restoredList = sortedWindows.map { win ->

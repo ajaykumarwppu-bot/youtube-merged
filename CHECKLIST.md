@@ -106,4 +106,14 @@ Har item ka status honest hai:
    (--login -> --rcfile $HOME/.bashrc), Studio stale-process cleanup + Retry button + node memory
    cap 512MB, $HOME/app-crash.log crash diagnostics. NOTE: dpkg ki compiled-path warning cosmetic
    hai — sirf bootstrap rebuild se hi jayegi.
+8. [x] ✅ **v1.0.4 (real ANR root-cause fix)**: v1.0.3 ka prewarm kaafi nahi tha — asli deadlock
+   race ye thi: `LocalPtySession.init` ke andar se hi `ensure*` heavy calls ho rahi thi AUR session
+   `withContext(Dispatchers.Main)` me ban raha tha. Prewarm ka IO file-walk (25k+ files,
+   `synchronized` lock) chal raha ho tab server/terminal spawn ka Main-thread call usi lock par
+   BLOCK ho jata tha -> UI freeze ("Waking up..." atka, buttons dead) -> ANR -> system app ko
+   maar deta tha (~20-25s). Process death se pref-flag kabhi set nahi hota tha -> har launch par
+   wahi loop. Fixes: (1) LocalPtySession.init se saare ensure* calls hata diye; (2) server-runner
+   session ab IO par banta hai (withContext(Main) removed); (3) LocalTerminalManager.managerScope
+   Main -> IO; (4) getOrCreateOrRestoreSessions ke creation blocks IO par + ensure* hoist;
+   (5) Application prewarm ab poora ensure* set chalata hai. Compile verified: compileTermuxReleaseKotlin GREEN.
 5. [ ] 📱 Ab sirf PHONE par: APK install → original AntiGem ke saath side-by-side → Studio button → setup.md follow

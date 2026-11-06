@@ -1,12 +1,12 @@
 {
-  "version_code": 103,
-  "version_name": "1.0.3",
+  "version_code": 104,
+  "version_name": "1.0.4",
   "min_supported_version_code": 1,
   "changelog": [
-    "FIX: app ka hang/crash (Get Started ke baad atakna, baar-baar band hona) — heavy environment file-walk ab app start/install par background me hota hai, terminal/Studio spawn turant khulta hai",
-    "FIX: terminal ke 'Permission denied' errors (bash profile) — login script ab compiled com.termux profile ko touch nahi karta, hamara .bashrc load hota hai",
-    "FIX: Studio server Retry — stale Node process ab clean hota hai, error screen par Retry button; node memory cap (512MB) low-RAM phones ke liye",
-    "NOTE: dpkg ki 'Permission denied' warning harmless hai (dpkg binary me com.termux compiled hai) — apt/dpkg ka kaam phir bhi chalta hai; crash ho to terminal me `cat ~/app-crash.log` bhejo"
+    "FIX: 'Waking up...' par 20-25s freeze ke baad app ka khud band ho jana (ANR crash loop) — asli wajah mili: AI engine ka terminal session Main (UI) thread par banta tha aur environment rewrite (poore rootfs ka 25k+ file walk) ke saath ek hi lock par block ho jata tha",
+    "FIX: terminal/Studio session spawn ab poori tarah background (IO) thread par hota hai — UI har haal me responsive rehti hai, buttons turant kaam karte hain",
+    "FIX: environment setup (path rewrite, glibc, claude launcher, termux-api) ab sirf IO threads par chalta hai — app start prewarm, server start aur terminal open teeno jagah guarantee",
+    "NOTE: pehli baar app kholne par engine background me 10-40s setup kar sakta hai (sirf ek baar) — us dauran app chalti rahegi, 'Waking up...' ke baad sab ready hoga"
   ],
-  "is_critical": false
+  "is_critical": true
 }

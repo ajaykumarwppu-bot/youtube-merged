@@ -326,8 +326,12 @@ object LocalServerManager {
         val appContext = context.applicationContext
         ensureBridgeBinary(appContext)
         // the bridge starts Claude Code through the app's launcher (--claude-bin)
+        // v1.0.4 ANR fix: saare heavy ensure* calls ab yahan IO par ho jate hain — LocalPtySession
+        // init me se hataye gaye hain, taaki session spawn (Main ya IO) kabhi lock/extract wait na kare
         LocalEnvironmentManager.ensureGlibcEnvironment(appContext)
         LocalEnvironmentManager.ensureClaudeWrapper(appContext)
+        LocalEnvironmentManager.ensureTermuxApiDispatcher(appContext)
+        LocalEnvironmentManager.ensureTermuxScriptPaths(appContext)
 
         val command = resolveServerCommand(appContext)
         if (command == null) {
@@ -352,17 +356,19 @@ object LocalServerManager {
             "[ServerManager] Spawning dedicated persistent terminal session for server runner with initialCommand: $command"
         )
 
-        val session = withContext(Dispatchers.Main) {
-            LocalPtySession(
-                id = "server-runner-pty",
-                initialTitle = "Server Runner",
-                context = appContext,
-                isSsh = false,
-                initialCommand = command,
-                initialCols = 80,
-                initialRows = 24
-            )
-        }
+        // v1.0.4 ANR fix: pehle withContext(Dispatchers.Main) tha — LocalPtySession init
+        // (env build + TerminalSession process spawn) Main thread par block karta tha. TerminalSession
+        // ka constructor apna reader thread khud spawn karta hai aur callbacks ko Main par post
+        // karta hai, isliye IO par construct karna safe (aur ab non-blocking) hai.
+        val session = LocalPtySession(
+            id = "server-runner-pty",
+            initialTitle = "Server Runner",
+            context = appContext,
+            isSsh = false,
+            initialCommand = command,
+            initialCols = 80,
+            initialRows = 24
+        )
 
         _serverSession.value = session
         _status.value = LocalServerStatus.Running()
