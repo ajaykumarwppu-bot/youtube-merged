@@ -1,0 +1,253 @@
+{
+  "manifest_version": 3,
+  "id": "creator-studio",
+  "name": "Creator Studio Bridge",
+  "version": "1.0.0",
+  "description": "YouTube Automation Creator Studio ka agent bridge — ideas, pipeline, videos, brain, skills, analytics. Studio local server se baat karta hai.",
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "worker.js"
+  },
+  "mcp_tools": [
+    {
+      "name": "studio_health",
+      "description": "Check Creator Studio server status + channel summary. Shuru me ek baar call karo; error aaye to Studio mode kholne ka bolo (floating switcher me Studio button) aur stop.",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "studio_ideas_list",
+      "description": "Idea Bank ke saare ideas (topic, details, status: new/picked/done). Agli video banane se PEHLE yahi list dekho — owner ke ideas pehle.",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "studio_idea_add",
+      "description": "Idea Bank me naya idea add karo (topic + details).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "topic": { "type": "string", "description": "Idea ka topic (1 line)" },
+          "details": { "type": "string", "description": "Kya hai, kyun banana chahiye, kya cover karna hai" }
+        },
+        "required": ["topic", "details"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "studio_idea_update",
+      "description": "Idea update karo (topic/details/status).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "topic": { "type": "string" },
+          "details": { "type": "string" },
+          "status": { "type": "string", "enum": ["new", "picked", "done"] }
+        },
+        "required": ["id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "studio_pipeline_list",
+      "description": "Production runs ka status — har run ke 8 stages (research → packaging → script → voiceover → visuals → edit → final_packaging → seo_prep) ka state + notes.",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "studio_pipeline_start",
+      "description": "Idea Bank ke idea se production run START karo — run banta hai, research stage active ho jata hai. Response me poora run milta hai.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ideaId": { "type": "string", "description": "studio_ideas_list se mila idea ka id" }
+        },
+        "required": ["ideaId"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "studio_stage_next",
+      "description": "Run ka ACTIVE stage complete karke next stage shuru karo (stage ka kaam PEHLE khatam karo, phir ye call karo). Response me run + next stage ka guidance milta hai.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "runId": { "type": "string" }
+        },
+        "required": ["runId"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "studio_run_retry",
+      "description": "Failed run ko wahin se resume karo (failed stage wapas active).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "runId": { "type": "string" }
+        },
+        "required": ["runId"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "studio_video_list",
+      "description": "Channel ke saare video records — title, topic, status, script, packaging (title/description/tags/chapters/end screen/pinned comment), pipeline skills, experiments, metrics.",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "studio_video_record",
+      "description": "Video record CREATE/UPDATE karo (upsert). Packaging stage par title+titleNote, script stage par script, seo_prep par packaging (description/tags/hashtags/chapters/endScreen/pinnedComment), metrics upload ke baad. Fields validated hote hain.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Existing record ka id (update) — naya banao to mat do" },
+          "title": { "type": "string" },
+          "topic": { "type": "string" },
+          "kind": { "type": "string", "enum": ["long", "short"] },
+          "status": { "type": "string", "enum": ["uploaded", "scheduled", "processing", "failed"] },
+          "duration": { "type": "string", "description": "\"11:40\" format" },
+          "script": { "type": "string", "description": "Markdown script (## HOOK (0:00-0:15) format)" },
+          "scheduledFor": { "type": "string", "description": "ISO timestamp" },
+          "publishedAt": { "type": "string", "description": "ISO timestamp" },
+          "failReason": { "type": "string" },
+          "failedStage": { "type": "string" },
+          "progress": {
+            "type": "object",
+            "properties": {
+              "stage": { "type": "string" },
+              "pct": { "type": "number" },
+              "note": { "type": "string" }
+            }
+          },
+          "pipeline": {
+            "type": "array",
+            "description": "Stage skills used: [{stage, skills:[{name, version}]}]",
+            "items": {
+              "type": "object",
+              "properties": {
+                "stage": { "type": "string" },
+                "skills": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "version": { "type": "string" }
+                    },
+                    "required": ["name"]
+                  }
+                }
+              },
+              "required": ["stage", "skills"]
+            }
+          },
+          "experiments": {
+            "type": "array",
+            "description": "Brain experiments applied: [{title, technique}]",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "technique": { "type": "string" }
+              },
+              "required": ["title", "technique"]
+            }
+          },
+          "packaging": {
+            "type": "object",
+            "description": "seo_prep output — video detail me 'Upload Package' section isi se banta hai",
+            "properties": {
+              "title": { "type": "string" },
+              "titleNote": { "type": "string", "description": "Title kis angle se likha" },
+              "description": { "type": "string" },
+              "tags": { "type": "array", "items": { "type": "string" } },
+              "hashtags": { "type": "array", "items": { "type": "string" } },
+              "chapters": {
+                "type": "array",
+                "description": "Sirf long videos",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "time": { "type": "string" },
+                    "label": { "type": "string" }
+                  },
+                  "required": ["time", "label"]
+                }
+              },
+              "endScreen": { "type": "string" },
+              "pinnedComment": { "type": "string" }
+            },
+            "required": ["title", "description", "tags"]
+          }
+        },
+        "required": ["title"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "studio_brain_get",
+      "description": "Brain ka pura data — analyzed videos (problems/findings), open questions, experiment reports + enabled techniques. Video banane se pehle relevant sections yahi se padho.",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "studio_brain_question_add",
+      "description": "Brain me research question add karo (kisi video ki problem se seekha kuch to yahan likho taaki agli video me na dohraya jaye).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "areas": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Problem areas — inme se: packaging, thumbnail, retention, ctr, seo, voiceover, editing, content, upload, analytics"
+          },
+          "text": { "type": "string", "description": "Question/problem ka clear description" },
+          "videoId": { "type": "string", "description": "Source video record ka id (optional)" }
+        },
+        "required": ["areas"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "studio_experiment_toggle",
+      "description": "Brain experiment techniques enable/disable karo (poora experiment: setAll=true + enabled; ek item: itemId + enabled).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "experimentId": { "type": "string" },
+          "setAll": { "type": "boolean" },
+          "itemId": { "type": "string" },
+          "enabled": { "type": "boolean" }
+        },
+        "required": ["experimentId", "enabled"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "studio_settings_get",
+      "description": "Studio Settings — kaunsi integrations connected hain (youtube/tts/etc), content language, default kind, autoUpload preferences. API keys MASKED aati hain (raw nahi milti).",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "studio_skill_list",
+      "description": "Installed skills (packages) — naam, version, enabled skills ki list. Stage ka kaam karne se pehle relevant skill yahan se dhundo.",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "studio_skill_get",
+      "description": "Ek skill package ka file content padho (path na do to skill ka summary).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Package id (studio_skill_list se)" },
+          "path": { "type": "string", "description": "Package ke andar file ka relative path (optional)" }
+        },
+        "required": ["id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "studio_analytics_get",
+      "description": "Channel analytics summary (dashboard computed data) — totals, health, trend. Decision lene se pehle dekho.",
+      "inputSchema": { "type": "object", "properties": {} }
+    }
+  ]
+}

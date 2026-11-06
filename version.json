@@ -1,0 +1,11 @@
+{
+  "version_code": 100,
+  "version_name": "1.0.0",
+  "min_supported_version_code": 1,
+  "changelog": [
+    "First Creator Studio release \u2014 AntiGem app + built-in YouTube Automation Creator Studio (floating switcher me Studio button)",
+    "Creator Studio: Brain (skills/experiments), Pipeline, Videos, Settings \u2014 sab local server par, data device par hi rehta hai",
+    "Update-safe: naya APK install karo, pura studio data preserve rehta hai"
+  ],
+  "is_critical": false
+}
