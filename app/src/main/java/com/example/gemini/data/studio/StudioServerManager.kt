@@ -71,6 +71,14 @@ object StudioServerManager {
         mutex.withLock {
             if (isHealthy()) return@withLock
 
+            // Stale/unhealthy process: purana zombie Node hatao taaki Retry par naya spawn ho sake
+            // (warna alive-but-broken process reuse hota aur 90s timeout tak hang lagta tha)
+            if (process?.isAlive == true && !isHealthy()) {
+                runCatching { process?.destroy() }
+                process = null
+                Thread.sleep(300)
+            }
+
             extractAssetsIfNeeded(context)
 
             val node = File(LocalEnvironmentManager.getBinDir(context), "node")
@@ -96,6 +104,8 @@ object StudioServerManager {
                         // package ke apne prefix se resolve hon (warna node exit 13 / EACCES).
                         "LD_LIBRARY_PATH" to LocalEnvironmentManager.getLibDir(context).absolutePath,
                         "NODE_ENV" to "production",
+                        // Low-RAM phones par Next.js node pure app ko OOM-kill karva deta hai — cap lagao
+                        "NODE_OPTIONS" to "--max-old-space-size=512",
                         "PORT" to port().toString(),
                         "HOSTNAME" to "127.0.0.1",
                         "STUDIO_DATA_DIR" to dataDir(context).absolutePath,

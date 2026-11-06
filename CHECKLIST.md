@@ -99,4 +99,11 @@ Har item ka status honest hai:
    hota hai jo dusre package name par SELinux-block hai). Achiva ka exact v1.0.21 fix port kiya:
    executeCommand + executeScriptLive + executeCommandLive env, .bashrc + etc/profile exports,
    AgyMcpManager package-aware env. Rootfs zip sha256 original release ke barabar verified.
+7. [x] ✅ **v1.0.3 (stability fix)**: phone par (a) Get Started ke baad app hang/crash — root cause
+   pehla terminal/Studio spawn Main thread par poore rootfs ka file-walk chala raha tha (ANR);
+   (b) terminal me bash/dpkg "Permission denied" — bootstrap binaries ka compiled-in com.termux
+   sysconfdir. Fixes: prewarm app-start + install-success par (IO thread), login script patch
+   (--login -> --rcfile $HOME/.bashrc), Studio stale-process cleanup + Retry button + node memory
+   cap 512MB, $HOME/app-crash.log crash diagnostics. NOTE: dpkg ki compiled-path warning cosmetic
+   hai — sirf bootstrap rebuild se hi jayegi.
 5. [ ] 📱 Ab sirf PHONE par: APK install → original AntiGem ke saath side-by-side → Studio button → setup.md follow

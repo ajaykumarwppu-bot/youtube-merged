@@ -205,9 +205,43 @@ object LocalEnvironmentManager {
             login.exists() && login.readText().contains("/data/data/com.termux/")
         } catch (_: Exception) { false }
         if (alreadyDone && !loginDirty) return
-        val count = rewriteHardcodedTermuxPaths(context)
-        prefs.edit().putBoolean(TERMUX_PATH_REWRITE_PREF, true).apply()
-        log("Applied hardcoded com.termux path rewrite to $count script(s)")
+        synchronized(this) {
+            // double-check inside lock — parallel callers (app prewarm + session spawn) se double-walk na ho
+            val doneNow = prefs.getBoolean(TERMUX_PATH_REWRITE_PREF, false)
+            val dirtyNow = try {
+                login.exists() && login.readText().contains("/data/data/com.termux/")
+            } catch (_: Exception) { false }
+            if (doneNow && !dirtyNow) return
+            val count = rewriteHardcodedTermuxPaths(context)
+            patchLoginScriptForCleanStart(context)
+            prefs.edit().putBoolean(TERMUX_PATH_REWRITE_PREF, true).apply()
+            log("Applied hardcoded com.termux path rewrite to $count script(s)")
+        }
+    }
+
+    /**
+     * Termux ka `login` script bash ko `--login` se chalata hai — bootstrap-built bash apna
+     * COMPILED-IN sysconfdir (/data/data/com.termux/files/usr/etc) kholta hai jo dusre package
+     * name par SELinux-block hai -> har shell start par "Permission denied" error dikhta hai.
+     * Fix: `--login` ko `--rcfile $HOME/.bashrc` se replace — bash compiled profile/bash.bashrc
+     * ko touch hi nahi karega, aur hamara .bashrc (PATH/LD_LIBRARY_PATH/PS1/aliases) load hoga.
+     * (dpkg ka compiled cfg.d path binary ke andar hota hai — wo warning cosmetic hai, fix
+     * sirf bootstrap rebuild se ho sakta hai.)
+     */
+    private fun patchLoginScriptForCleanStart(context: Context) {
+        try {
+            val login = File(getBinDir(context), "login")
+            if (!login.isFile) return
+            val text = login.readText()
+            if (!text.contains("--login")) return
+            val patched = text.replace("--login", "--rcfile \"\$HOME/.bashrc\"")
+            login.setWritable(true, true)
+            login.writeText(patched)
+            login.setExecutable(true, false)
+            log("Patched login script: --login -> --rcfile \$HOME/.bashrc (compiled sysconfdir error avoid)")
+        } catch (e: Exception) {
+            Log.w(TAG, "login script patch failed: ${e.message}")
+        }
     }
 
     fun rewriteHardcodedTermuxPaths(context: Context): Int {
@@ -1829,6 +1863,13 @@ object LocalEnvironmentManager {
             )
             updateInstallNotification(appContext, "Installation Complete", "Termux Linux environment is verified and ready!", 100, ongoing = false, force = true)
             log("✅ Local environment ready and verified! Total space: ${getFormattedDiskSpace(appContext)}")
+            // Prewarm (Main-thread ANR fix): pehla terminal/Studio spawn heavy file-walk +
+            // glibc extract trigger karta tha — ab yeh kaam install ke saath hi IO thread par
+            // ho jata hai, taaki user jab terminal/Studio khole to spawn fast ho.
+            if (isTermuxPackage(appContext)) {
+                runCatching { ensureTermuxScriptPaths(appContext) }
+                runCatching { ensureGlibcEnvironment(appContext) }
+            }
             LocalTerminalManager.autoLaunchServerIfReady(appContext)
             return@withContext true
 
