@@ -43,20 +43,19 @@ jobs:
             echo "EOF"
           } >> $GITHUB_OUTPUT
 
-      # Release sirf tab: version.json is push me change hua, ya manual dispatch force_release=true
+      # Release sirf tab: version.json ka tag abhi tak published NAHI hai
+      # (pehle HEAD^ diff se hota tha — failed build ke baad agli green push par
+      #  release fir se publish nahi hoti thi; ab tag-compare se ye problem gayi)
       - name: Detect release
         id: release
         run: |
           DO_RELEASE="false"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.force_release }}" == "true" ]]; then
+          CURRENT_TAG="v$(python3 -c "import json; print(json.load(open('version.json')).get('version_name','1.0.0'))")"
+          if ! git ls-remote --tags origin "refs/tags/$CURRENT_TAG" | grep -q "refs/tags/$CURRENT_TAG$"; then
             DO_RELEASE="true"
-          elif [[ "${{ github.event_name }}" == "push" ]]; then
-            if git diff --name-only HEAD^ HEAD 2>/dev/null | grep -q "^version.json$"; then
-              DO_RELEASE="true"
-            fi
           fi
           echo "do=$DO_RELEASE" >> $GITHUB_OUTPUT
-          echo "Release mode: $DO_RELEASE"
+          echo "Release mode: $DO_RELEASE (tag: $CURRENT_TAG)"
 
       - name: Set up Java 21
         uses: actions/setup-java@v4
