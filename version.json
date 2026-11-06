@@ -1,12 +1,11 @@
 {
-  "version_code": 101,
-  "version_name": "1.0.1",
+  "version_code": 102,
+  "version_name": "1.0.2",
   "min_supported_version_code": 1,
   "changelog": [
-    "IMPORTANT: ye build alag package id (com.termux.creatorstudio) par hai \u2014 purana v1.0.0 UNINSTALL karke ye APK fresh install karo (update button kaam nahi karega is baar)",
-    "FIX: 360MB environment (bootstrap) download ab aayega \u2014 app ab termux family build hai (pehle standard build theek se environment setup nahi kar pa raha tha)",
-    "FIX: Studio server (Node) ab termux-built node ke saath sahi chalega \u2014 LD_LIBRARY_PATH + OPENSSL_CONF + script path rewrite (antigem-merged ke proven fixes)",
-    "Ports ab 1238/1239/8769/8875 \u2014 original AntiGem aur AntiGem Achiva ke saath side-by-side, koi port clash nahi"
+    "FIX: environment install ka 'Shell verification test failed / libandroid-support.so' error theek — ab install verification me bhi LD_LIBRARY_PATH lagta hai (Achiva ke proven v1.0.21 fix jaisa)",
+    "FIX: terminal commands, scripts, MCP servers aur agent tools me bhi termux libs ka path ab automatic — executeCommand, executeScriptLive, executeCommandLive, .bashrc, etc/profile sab jagah",
+    "Ye APK v1.0.1 ke upar DIRECT update hai (same app id com.termux.creatorstudio) — Update Download se install karo, phir Settings > AntiGem Environment me 'Retry Install' dabao"
   ],
   "is_critical": false
 }

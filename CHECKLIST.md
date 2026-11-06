@@ -93,4 +93,10 @@ Har item ka status honest hai:
    (wahi problem Achiva me bhi thi — unka proven fix port kiya: com.termux.creatorstudio +
    applyTermuxRuntimeEnv + ensureTermuxScriptPaths + LD_LIBRARY_PATH + ports 1238/1239/8769/8875).
    NOTE: package id change ki wajah se v1.0.0 uninstall karke v1.0.1 FRESH install karna hoga.
+6. [x] ✅ **v1.0.2 (env install verification fix)**: phone par "Shell verification test failed /
+   libandroid-support.so not found" error aaya — root cause: install verification ka bash spawn
+   bina LD_LIBRARY_PATH ke hota tha (bootstrap binaries ka DT_RUNPATH /data/data/com.termux par
+   hota hai jo dusre package name par SELinux-block hai). Achiva ka exact v1.0.21 fix port kiya:
+   executeCommand + executeScriptLive + executeCommandLive env, .bashrc + etc/profile exports,
+   AgyMcpManager package-aware env. Rootfs zip sha256 original release ke barabar verified.
 5. [ ] 📱 Ab sirf PHONE par: APK install → original AntiGem ke saath side-by-side → Studio button → setup.md follow

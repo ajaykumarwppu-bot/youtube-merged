@@ -291,12 +291,28 @@ class AgyMcpManager(
                                 put("cwd", spec.cwd)
                             }
                             val envMap = spec.env.toMutableMap()
-                            // Ensure Termux stdio binaries (npx, python3, etc.) have proper loader and PATH on Android
-                            if (!envMap.containsKey("LD_PRELOAD")) {
-                                envMap["LD_PRELOAD"] = "/data/data/com.termux/files/usr/lib/libtermux-exec.so"
+                            // Ensure Termux stdio binaries (npx, python3, etc.) have proper loader and PATH on Android.
+                            // Paths must follow THIS app's package (fork builds ship under a different applicationId),
+                            // so they are derived from BuildConfig instead of a hardcoded com.termux prefix.
+                            val termuxFilesDir = "/data/data/${com.example.gemini.BuildConfig.APPLICATION_ID}/files"
+                            if (!envMap.containsKey("LD_PRELOAD") && java.io.File("$termuxFilesDir/usr/lib/libtermux-exec.so").exists()) {
+                                envMap["LD_PRELOAD"] = "$termuxFilesDir/usr/lib/libtermux-exec.so"
+                            }
+                            if (!envMap.containsKey("LD_LIBRARY_PATH")) {
+                                envMap["LD_LIBRARY_PATH"] = "$termuxFilesDir/usr/lib"
+                            }
+                            // termux-exec v2 resolves its prefix from these runtime vars instead of the
+                            // compiled-in com.termux path — required for POSIX shebangs (#!/usr/bin/env).
+                            envMap["TERMUX__PREFIX"] = "$termuxFilesDir/usr"
+                            envMap["TERMUX_APP__DATA_DIR"] = "/data/data/${com.example.gemini.BuildConfig.APPLICATION_ID}"
+                            // Termux node binaries ship OpenSSL with the compiled-in com.termux config path,
+                            // which is unreadable under this package (SELinux) — node dies (exit 13) the
+                            // moment a stdio MCP server touches crypto. Point it at our own openssl.cnf.
+                            if (!envMap.containsKey("OPENSSL_CONF") && java.io.File("$termuxFilesDir/usr/etc/tls/openssl.cnf").exists()) {
+                                envMap["OPENSSL_CONF"] = "$termuxFilesDir/usr/etc/tls/openssl.cnf"
                             }
                             if (!envMap.containsKey("PATH")) {
-                                envMap["PATH"] = "/data/data/com.termux/files/home/.local/bin:/data/data/com.termux/files/usr/bin:/system/bin"
+                                envMap["PATH"] = "$termuxFilesDir/home/.local/bin:$termuxFilesDir/usr/bin:/system/bin"
                             }
                             if (envMap.isNotEmpty()) {
                                 val envObj = org.json.JSONObject()

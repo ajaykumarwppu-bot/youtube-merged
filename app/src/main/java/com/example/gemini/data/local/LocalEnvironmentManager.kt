@@ -2263,6 +2263,9 @@ object LocalEnvironmentManager {
 export PREFIX="${prefixDir.absolutePath}"
 export HOME="${homeDir.absolutePath}"
 export PATH="${homeDir.absolutePath}/.local/bin:${binDir.absolutePath}:${binDir.absolutePath}/applets:/system/bin:/system/xbin"
+export LD_LIBRARY_PATH="${prefixDir.absolutePath}/lib${'$'}{LD_LIBRARY_PATH:+:${'$'}LD_LIBRARY_PATH}"
+# node's compiled-in OpenSSL config lives in the ORIGINAL Termux dir (unreadable here)
+[ -f "${prefixDir.absolutePath}/etc/tls/openssl.cnf" ] && export OPENSSL_CONF="${prefixDir.absolutePath}/etc/tls/openssl.cnf"
 export TMPDIR="${prefixDir.absolutePath}/tmp"
 export TERM="xterm-256color"
 export COLORTERM="truecolor"
@@ -2305,6 +2308,9 @@ fi
                 """export PREFIX="${prefixDir.absolutePath}"
 export HOME="${homeDir.absolutePath}"
 export PATH="${homeDir.absolutePath}/.local/bin:${binDir.absolutePath}:${binDir.absolutePath}/applets:/system/bin:/system/xbin"
+export LD_LIBRARY_PATH="${prefixDir.absolutePath}/lib${'$'}{LD_LIBRARY_PATH:+:${'$'}LD_LIBRARY_PATH}"
+# node's compiled-in OpenSSL config lives in the ORIGINAL Termux dir (unreadable here)
+[ -f "${prefixDir.absolutePath}/etc/tls/openssl.cnf" ] && export OPENSSL_CONF="${prefixDir.absolutePath}/etc/tls/openssl.cnf"
 export TMPDIR="${prefixDir.absolutePath}/tmp"
 export TERM="xterm-256color"
 export COLORTERM="truecolor"
@@ -2548,6 +2554,12 @@ All files created here persist inside the application.
             env["TMPDIR"] = tmp.absolutePath
             env["TERM"] = "xterm-256color"
             env["COLORTERM"] = "truecolor"
+            // Bootstrap binaries (bash, node, ...) carry DT_RUNPATH=/data/data/com.termux/files/usr/lib,
+            // which is unreadable under any other package name (SELinux). LD_LIBRARY_PATH is searched
+            // BEFORE DT_RUNPATH by the bionic linker, so pointing it at the app's own $PREFIX/lib makes
+            // libandroid-support.so & friends resolve everywhere, exactly like Termux does.
+            env["LD_LIBRARY_PATH"] = "${lib.absolutePath}"
+            applyTermuxRuntimeEnv(env, context)
             env["TERMUX_VERSION"] = "0.118.0"
             env["TERMUX_MAIN_PACKAGE_NAME"] = context.packageName
             env["TERMUX_APK_RELEASE"] = "GITHUB"
@@ -2732,6 +2744,9 @@ All files created here persist inside the application.
         env["HOME"] = homeDir.absolutePath
         env["TMPDIR"] = tmpDir.absolutePath
         env["PATH"] = "${homeDir.absolutePath}/.local/bin:${binDir.absolutePath}:${prefixDir.absolutePath}/bin:/system/bin:/system/xbin"
+        // Bootstrap bash needs the app's own lib dir (its DT_RUNPATH points at com.termux, see executeCommand)
+        env["LD_LIBRARY_PATH"] = "${getLibDir(context).absolutePath}"
+        applyTermuxRuntimeEnv(env, context)
         env["TERM"] = "xterm-256color"
         env["COLORTERM"] = "truecolor"
         env["LANG"] = "en_US.UTF-8"
@@ -2791,6 +2806,9 @@ All files created here persist inside the application.
         env["HOME"] = homeDir.absolutePath
         env["TMPDIR"] = tmpDir.absolutePath
         env["PATH"] = "${homeDir.absolutePath}/.local/bin:${binDir.absolutePath}:${prefixDir.absolutePath}/bin:/system/bin:/system/xbin"
+        // Bootstrap bash needs the app's own lib dir (its DT_RUNPATH points at com.termux, see executeCommand)
+        env["LD_LIBRARY_PATH"] = "${getLibDir(context).absolutePath}"
+        applyTermuxRuntimeEnv(env, context)
         env["DEBIAN_FRONTEND"] = "noninteractive"
         env["TERM"] = "xterm-256color"
         env["COLORTERM"] = "truecolor"
