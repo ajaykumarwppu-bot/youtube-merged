@@ -88,4 +88,9 @@ Har item ka status honest hai:
 2. [x] ✅ Release **v1.0.0** published — `CreatorStudio-standard-v1.0.0-release.apk` (36.6 MB) — updater isi ko dhundega
 3. [x] ✅ Release **rootfs-v1** — bootrapz_2026-10-04.zip (351.3 MB) — app ka Linux env isi se download karega
 4. [x] ✅ Updater probes pass: version.json raw (200) + APK download URL + rootfs URL — teeno live
+5. [x] ✅ **v1.0.1 (termux-family build)**: standard flavor par isTermuxPackage()==false tha — isi liye
+   360MB bootstrap option nahi aata tha aur termux Node na hone se Studio server start nahi hota tha
+   (wahi problem Achiva me bhi thi — unka proven fix port kiya: com.termux.creatorstudio +
+   applyTermuxRuntimeEnv + ensureTermuxScriptPaths + LD_LIBRARY_PATH + ports 1238/1239/8769/8875).
+   NOTE: package id change ki wajah se v1.0.0 uninstall karke v1.0.1 FRESH install karna hoga.
 5. [ ] 📱 Ab sirf PHONE par: APK install → original AntiGem ke saath side-by-side → Studio button → setup.md follow
