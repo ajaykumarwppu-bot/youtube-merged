@@ -172,7 +172,92 @@ object LocalEnvironmentManager {
     fun getHomeDir(context: Context): File = File(context.filesDir, "home")
     fun getProjectsDir(context: Context): File = File(getHomeDir(context), "projects")
     fun getUbuntuRootDir(context: Context): File = File(context.filesDir, "ubuntu")
-    fun isTermuxPackage(context: Context): Boolean = context.packageName == "com.termux"
+    fun isTermuxPackage(context: Context): Boolean =
+        context.packageName == "com.termux" || context.packageName == "com.termux.creatorstudio"
+
+    /**
+     * Termux-family runtime env for a package that is NOT the real com.termux:
+     * termux-built binaries hardcode /data/data/com.termux paths (termux-exec v2 +
+     * OpenSSL config) which are SELinux-blocked under any other package name.
+     * Export runtime overrides so node/termux-exec resolve THIS package's prefix.
+     * Only export OPENSSL_CONF when the file really exists — a dangling one is worse.
+     */
+    fun applyTermuxRuntimeEnv(env: MutableMap<String, String>, context: Context) {
+        env["TERMUX__PREFIX"] = getPrefixDir(context).absolutePath
+        env["TERMUX_APP__DATA_DIR"] = "/data/data/${context.packageName}"
+        val opensslCnf = File(getPrefixDir(context), "etc/tls/openssl.cnf")
+        if (opensslCnf.isFile) env["OPENSSL_CONF"] = opensslCnf.absolutePath
+    }
+
+    private const val TERMUX_PATH_REWRITE_PREF = "termux_path_rewrite_applied"
+
+    /**
+     * One-time (pref-tracked, self-healing) rewrite of hardcoded /data/data/com.termux
+     * paths inside the extracted bootstrap — scripts, shebangs and symlinks must point
+     * at THIS package's own private dir or nothing runs under com.termux.creatorstudio.
+     */
+    fun ensureTermuxScriptPaths(context: Context) {
+        if (context.packageName == "com.termux") return
+        val prefs = context.getSharedPreferences("studio_env_fix", Context.MODE_PRIVATE)
+        val alreadyDone = prefs.getBoolean(TERMUX_PATH_REWRITE_PREF, false)
+        val login = File(getBinDir(context), "login")
+        val loginDirty = try {
+            login.exists() && login.readText().contains("/data/data/com.termux/")
+        } catch (_: Exception) { false }
+        if (alreadyDone && !loginDirty) return
+        val count = rewriteHardcodedTermuxPaths(context)
+        prefs.edit().putBoolean(TERMUX_PATH_REWRITE_PREF, true).apply()
+        log("Applied hardcoded com.termux path rewrite to $count script(s)")
+    }
+
+    fun rewriteHardcodedTermuxPaths(context: Context): Int {
+        if (context.packageName == "com.termux") return 0
+        val prefixDir = getPrefixDir(context)
+        if (!prefixDir.isDirectory) return 0
+        val needleData = "/data/data/com.termux/"
+        val needleUser = "/data/user/0/com.termux/"
+        val replacementData = "/data/data/${context.packageName}/"
+        val replacementUser = "/data/user/0/${context.packageName}/"
+        var rewritten = 0
+        val maxFileBytes = 2L * 1024 * 1024
+        prefixDir.walkTopDown().forEach { file ->
+            if (isSymlink(file)) {
+                // Fix dangling absolute targets: recreate the link with the app's own path
+                val target = try { Os.readlink(file.absolutePath) } catch (_: Exception) { return@forEach }
+                if (target.contains(needleData) || target.contains(needleUser)) {
+                    val newTarget = target
+                        .replace(needleData, replacementData)
+                        .replace(needleUser, replacementUser)
+                    try {
+                        file.delete() // deletes the link itself, never its (dangling) target
+                        Os.symlink(newTarget, file.absolutePath)
+                        rewritten++
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Symlink rewrite failed for ${file.absolutePath} -> $newTarget: ${e.message}")
+                    }
+                }
+                return@forEach
+            }
+            if (!file.isFile) return@forEach
+            if (file.length() == 0L || file.length() > maxFileBytes) return@forEach
+            val bytes = try { file.readBytes() } catch (_: Exception) { return@forEach }
+            // NUL byte = binary (ELF, .so, images, sqlite...) — do not touch
+            if (bytes.contains(0.toByte())) return@forEach
+            val original = String(bytes, Charsets.UTF_8)
+            if (!original.contains(needleData) && !original.contains(needleUser)) return@forEach
+            val text = original
+                .replace(needleData, replacementData)
+                .replace(needleUser, replacementUser)
+            try {
+                // FileOutputStream on the existing file truncates+writes in place: mode preserved
+                FileOutputStream(file).use { it.write(text.toByteArray(Charsets.UTF_8)) }
+                rewritten++
+            } catch (e: Exception) {
+                Log.w(TAG, "Path rewrite failed for ${file.absolutePath}: ${e.message}")
+            }
+        }
+        return rewritten
+    }
 
     fun ensureProotExtracted(context: Context): String {
         val binDir = File(context.filesDir, "bin")

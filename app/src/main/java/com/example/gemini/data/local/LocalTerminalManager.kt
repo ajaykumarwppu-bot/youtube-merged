@@ -313,6 +313,12 @@ class LocalPtySession(
                 envMap["TERMUX_APK_RELEASE"] = "GITHUB"
                 envMap["TERMUX_APP_PID"] = "${android.os.Process.myPid()}"
                 envMap["TERMUX__USER_ID"] = "0"
+                // Termux-family package (com.termux.creatorstudio): prefix/lib must be on
+                // LD_LIBRARY_PATH so termux-built shared libs resolve, and runtime overrides
+                // (termux-exec v2 + OpenSSL config) must point at THIS package's prefix.
+                envMap["LD_LIBRARY_PATH"] = LocalEnvironmentManager.getLibDir(context).absolutePath
+                LocalEnvironmentManager.applyTermuxRuntimeEnv(envMap, context)
+                LocalEnvironmentManager.ensureTermuxScriptPaths(context)
                 envMap["SHELL"] = shellBinary
                 envMap["ANDROID_DATA"] = "/data"
                 envMap["ANDROID_ROOT"] = "/system"

@@ -1,11 +1,12 @@
 {
-  "version_code": 100,
-  "version_name": "1.0.0",
+  "version_code": 101,
+  "version_name": "1.0.1",
   "min_supported_version_code": 1,
   "changelog": [
-    "First Creator Studio release \u2014 AntiGem app + built-in YouTube Automation Creator Studio (floating switcher me Studio button)",
-    "Creator Studio: Brain (skills/experiments), Pipeline, Videos, Settings \u2014 sab local server par, data device par hi rehta hai",
-    "Update-safe: naya APK install karo, pura studio data preserve rehta hai"
+    "IMPORTANT: ye build alag package id (com.termux.creatorstudio) par hai \u2014 purana v1.0.0 UNINSTALL karke ye APK fresh install karo (update button kaam nahi karega is baar)",
+    "FIX: 360MB environment (bootstrap) download ab aayega \u2014 app ab termux family build hai (pehle standard build theek se environment setup nahi kar pa raha tha)",
+    "FIX: Studio server (Node) ab termux-built node ke saath sahi chalega \u2014 LD_LIBRARY_PATH + OPENSSL_CONF + script path rewrite (antigem-merged ke proven fixes)",
+    "Ports ab 1238/1239/8769/8875 \u2014 original AntiGem aur AntiGem Achiva ke saath side-by-side, koi port clash nahi"
   ],
   "is_critical": false
 }

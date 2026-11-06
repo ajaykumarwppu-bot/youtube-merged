@@ -13,7 +13,7 @@ AntiGem ka pura power (chat agents, Linux terminal, IDE, browser, notes) + float
 ## Ye repo kya hai
 
 - Base: [AntiGem](https://github.com/Santoshkurmi/antigem) (GPLv3) — apna independent fork, original repo se koi connection nahi (updater, rootfs, telemetry sab is repo se/nahi).
-- **Alag app identity**: `com.creatorstudio` — original AntiGem (com.antigem/com.termux) ke saath side-by-side install hota hai, usko touch nahi karta.
+- **Alag app identity**: `com.termux.creatorstudio` (termux-family build — jaise AntiGem Achiva) — original AntiGem ke saath side-by-side, ports bhi alag (1238/1239/8769/8875).
 - **Update-safe**: same signature + badhta versionCode → naya APK seedha update hoga, studio data (videos, brain, settings) preserve.
 
 ## App ke andar kya naya hai

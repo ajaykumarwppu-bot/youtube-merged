@@ -99,10 +99,10 @@ jobs:
           fi
           echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > app/release.jks
 
-      - name: Build Release APK (standard flavor — com.creatorstudio)
+      - name: Build Release APK (termux flavor — com.termux.creatorstudio, termux bootstrap env)
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleStandardRelease --no-daemon --stacktrace
+          ./gradlew :app:assembleTermuxRelease --no-daemon --stacktrace
 
       - name: Prepare release APK name (updater pattern)
         run: |
@@ -110,13 +110,13 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           SRC=$(find app/build/outputs/apk/standard/release -name "*.apk" | head -1)
           test -n "$SRC" || { echo "APK nahi mila"; exit 1; }
-          cp "$SRC" "output/CreatorStudio-standard-v${VERSION}-release.apk"
+          cp "$SRC" "output/CreatorStudio-termux-v${VERSION}-release.apk"
           ls -lh output/
 
       - name: Upload APK artifact (har push par)
         uses: actions/upload-artifact@v4
         with:
-          name: CreatorStudio-standard-v${{ steps.version.outputs.version }}
+          name: CreatorStudio-termux-v${{ steps.version.outputs.version }}
           path: output/*.apk
           if-no-files-found: error
 

@@ -98,7 +98,7 @@ class AppUpdateManager(private val context: Context) {
 
             val flavorType = when {
                 currentPkg == "com.termux" && isSharedUser -> "termux-shared"
-                currentPkg == "com.termux" -> "termux"
+                currentPkg == "com.termux" || currentPkg == "com.termux.creatorstudio" -> "termux"
                 else -> "standard"
             }
             val downloadUrl = "https://github.com/ajaykumarwppu-bot/youtube-merged/releases/download/v$remoteVersionName/CreatorStudio-$flavorType-v$remoteVersionName-release.apk"

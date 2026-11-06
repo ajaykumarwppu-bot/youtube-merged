@@ -54,10 +54,13 @@ android {
         }
         create("termux") {
             dimension = "mode"
-            applicationId = "com.termux"
-            buildConfigField("int", "BRIDGE_PORT", "1234")
-            buildConfigField("int", "HUB_PORT", "1235")
-            buildConfigField("int", "BROWSER_MCP_PORT", "8765")
+            // com.termux.creatorstudio — termux family (isTermuxPackage() recognizes it)
+            // par original AntiGem (com.termux) se alag, isliye side-by-side install OK.
+            // Ports bhi alag (1238/1239/8769) — original AntiGem aur Achiva se koi clash nahi.
+            applicationId = "com.termux.creatorstudio"
+            buildConfigField("int", "BRIDGE_PORT", "1238")
+            buildConfigField("int", "HUB_PORT", "1239")
+            buildConfigField("int", "BROWSER_MCP_PORT", "8769")
             buildConfigField("int", "STUDIO_PORT", "8875")
             buildConfigField("boolean", "IS_SHARED_USER_ID", "false")
         }

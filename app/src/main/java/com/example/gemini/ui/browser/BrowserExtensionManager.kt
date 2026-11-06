@@ -197,7 +197,12 @@ class BrowserExtensionManager private constructor() {
                 "PREFIX" to LocalEnvironmentManager.getPrefixDir(context).absolutePath,
                 "PATH" to "${LocalEnvironmentManager.getBinDir(context).absolutePath}:/system/bin",
                 "TMPDIR" to LocalEnvironmentManager.getTmpDir(context).absolutePath,
+                // Termux-family package: termux-built node ke shared libs + termux-exec/OpenSSL
+                // is package ke apne prefix se resolve hone chahiye (warna exit 13 / EACCES).
+                "LD_LIBRARY_PATH" to LocalEnvironmentManager.getLibDir(context).absolutePath,
                 "AGY_PARENT_PID" to android.os.Process.myPid().toString()))
+            LocalEnvironmentManager.applyTermuxRuntimeEnv(builder.environment(), context)
+            LocalEnvironmentManager.ensureTermuxScriptPaths(context)
             // Everything the host prints, plus its exit code, goes to ~/extension-host.log so a failing phone can be diagnosed.
             val logFile = File(LocalEnvironmentManager.getHomeDir(context), "extension-host.log")
             synchronized(hostTail) { hostTail.clear() }

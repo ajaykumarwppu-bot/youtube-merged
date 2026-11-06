@@ -92,12 +92,17 @@ object StudioServerManager {
                         "PREFIX" to LocalEnvironmentManager.getPrefixDir(context).absolutePath,
                         "PATH" to "${LocalEnvironmentManager.getBinDir(context).absolutePath}:/system/bin",
                         "TMPDIR" to LocalEnvironmentManager.getTmpDir(context).absolutePath,
+                        // Termux-family package: termux-built node ke libs + OpenSSL config is
+                        // package ke apne prefix se resolve hon (warna node exit 13 / EACCES).
+                        "LD_LIBRARY_PATH" to LocalEnvironmentManager.getLibDir(context).absolutePath,
                         "NODE_ENV" to "production",
                         "PORT" to port().toString(),
                         "HOSTNAME" to "127.0.0.1",
                         "STUDIO_DATA_DIR" to dataDir(context).absolutePath,
                     )
                 )
+                LocalEnvironmentManager.applyTermuxRuntimeEnv(builder.environment(), context)
+                LocalEnvironmentManager.ensureTermuxScriptPaths(context)
 
                 // Server ka pura output log file me — phone par diagnose karne ke liye
                 val log = logFile(context)
