@@ -108,7 +108,7 @@ jobs:
         run: |
           mkdir -p output
           VERSION="${{ steps.version.outputs.version }}"
-          SRC=$(find app/build/outputs/apk/standard/release -name "*.apk" | head -1)
+          SRC=$(find app/build/outputs/apk/termux/release -name "*.apk" | head -1)
           test -n "$SRC" || { echo "APK nahi mila"; exit 1; }
           cp "$SRC" "output/CreatorStudio-termux-v${VERSION}-release.apk"
           ls -lh output/
