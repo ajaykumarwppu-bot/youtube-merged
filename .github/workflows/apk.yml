@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history — Detect release step needs HEAD^ (shallow clone me git diff HEAD^ HEAD fail hota hai)
 
       - name: Parse version.json
         id: version
